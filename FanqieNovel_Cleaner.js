@@ -1,19 +1,15 @@
 /*
-番茄小说净化脚本 V1
+番茄小说净化脚本 V3
 适配目标：番茄小说 7.1.7
 
-功能：
-1. 删除广告字段
-2. 删除福利 / 任务 / 金币 / 签到模块
-3. 删除悬浮窗 / 弹窗 / banner
-4. 删除阅读页推荐
-5. 简化“我的”页入口
-
-说明：
-这是通用 JSON 净化脚本。番茄小说接口如果变动，后续需要根据 Loon 最近请求继续补规则。
+新增：
+1. 针对 ByteGecko 下发的红包/金币/福利/挂件资源做空返回
+2. 清理 JSON 接口里的广告、福利、任务、推荐、悬浮窗字段
+3. 尽量避免误删小说正文
 */
 
 let body = $response.body;
+let url = $request.url || "";
 
 function isJson(str) {
   if (!str || typeof str !== "string") return false;
@@ -27,7 +23,32 @@ function containsAny(text, words) {
   return words.some(w => text.includes(w.toLowerCase()));
 }
 
-// 需要删除的字段名
+// ==================================================
+// 1. 针对抓包命中的 ByteGecko 静态资源直接空返回
+// ==================================================
+const resourceBlockWords = [
+  "luckycat",
+  "gold_box",
+  "redpacket",
+  "reward",
+  "pendant",
+  "welfare",
+  "coin",
+  "bonus",
+  "task",
+  "video_box_redpacket",
+  "video_pendant",
+  "hide_reward_union",
+  "redpacket_increase"
+];
+
+if (containsAny(url, resourceBlockWords)) {
+  $done({ body: "{}" });
+}
+
+// ==================================================
+// 2. 常规 JSON 字段净化
+// ==================================================
 const removeKeys = [
   // 广告
   "ad",
@@ -87,6 +108,9 @@ const removeKeys = [
   "incentive",
   "incentive_video",
   "incentiveVideo",
+  "luckycat",
+  "lucky_cat",
+  "luckyCat",
 
   // 弹窗 / 悬浮窗
   "popup",
@@ -138,7 +162,6 @@ const removeKeys = [
   "marketingInfo"
 ];
 
-// 需要删除的标题 / 文案关键词
 const removeTextWords = [
   "广告",
   "福利",
@@ -173,10 +196,13 @@ const removeTextWords = [
   "领现金",
   "提现",
   "福利页",
-  "福利入口"
+  "福利入口",
+  "红包雨",
+  "翻倍",
+  "视频奖励",
+  "看视频领奖励"
 ];
 
-// 正文字段，避免误删小说正文
 const keepKeys = [
   "content",
   "chapter_content",
@@ -192,12 +218,15 @@ const keepKeys = [
   "paragraphs",
   "text",
   "abstract",
-  "summary"
+  "summary",
+  "book_id",
+  "bookId",
+  "item_id",
+  "itemId"
 ];
 
 function shouldRemoveByKey(key) {
   if (!key) return false;
-
   if (keepKeys.includes(key)) return false;
 
   const lower = key.toLowerCase();
@@ -229,7 +258,9 @@ function shouldRemoveByValue(obj) {
     "card_name",
     "cardName",
     "component_name",
-    "componentName"
+    "componentName",
+    "resource_name",
+    "resourceName"
   ];
 
   for (const f of textFields) {
@@ -264,7 +295,9 @@ function shouldRemoveByValue(obj) {
       "activity",
       "popup",
       "float",
-      "pendant"
+      "pendant",
+      "luckycat",
+      "bonus"
     ])
   ) {
     return true;
@@ -314,7 +347,6 @@ function clean(obj, depth = 0) {
       obj[key] = clean(obj[key], depth + 1);
     }
 
-    // 常见开关字段直接关闭
     const falseKeys = [
       "show_ad",
       "showAd",
@@ -352,7 +384,6 @@ function clean(obj, depth = 0) {
       }
     }
 
-    // 常见数量字段归零
     const zeroKeys = [
       "ad_count",
       "adCount",
@@ -376,7 +407,6 @@ function clean(obj, depth = 0) {
       }
     }
 
-    // 常见列表字段置空，减少底部福利 / 我的页运营模块
     const emptyArrayKeys = [
       "adList",
       "ad_list",
@@ -416,7 +446,7 @@ try {
     body = JSON.stringify(obj);
   }
 } catch (e) {
-  console.log("FanqieNovel_Cleaner error: " + e);
+  console.log("FanqieNovel_Cleaner V3 error: " + e);
 }
 
 $done({ body });
