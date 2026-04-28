@@ -1,35 +1,75 @@
 /*
-番茄小说净化脚本 V3
+番茄小说净化脚本 V7.1
 适配目标：番茄小说 7.1.7
 
-新增：
-1. 针对 ByteGecko 下发的红包/金币/福利/挂件资源做空返回
-2. 清理 JSON 接口里的广告、福利、任务、推荐、悬浮窗字段
-3. 尽量避免误删小说正文
+设计原则：
+1. 登录/验证码/风控链路直接放行，不改响应。
+2. 只温和清理广告、福利、红包、金币、悬浮窗、推荐字段。
+3. 针对 ByteGecko 福利红包资源做空返回。
+4. 尽量避免误删小说正文、章节内容、书籍基础信息。
 */
 
-let body = $response.body;
-let url = $request.url || "";
+let body = $response.body || "";
+let url = ($request && $request.url) ? $request.url : "";
 
-function isJson(str) {
-  if (!str || typeof str !== "string") return false;
-  const s = str.trim();
-  return (s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"));
-}
+// ==================================================
+// 0. 登录 / 验证码 / 风控 / 支付 / 设置链路保护
+// ==================================================
+
+const passThroughUrlWords = [
+  "passport",
+  "login",
+  "logout",
+  "sms",
+  "mobile",
+  "captcha",
+  "verify",
+  "verification",
+  "auth",
+  "account",
+  "user/login",
+  "user/mobile",
+  "security",
+  "bdturing",
+  "mssdk",
+  "xlog",
+  "applog",
+  "rtlog",
+  "settings",
+  "service/settings",
+  "gateway-u",
+  "tp-pay",
+  "pay",
+  "wallet",
+  "order",
+  "purchase",
+  "token",
+  "refresh_token",
+  "device",
+  "install",
+  "activation"
+];
 
 function containsAny(text, words) {
   if (!text) return false;
   text = String(text).toLowerCase();
-  return words.some(w => text.includes(w.toLowerCase()));
+  return words.some(w => text.includes(String(w).toLowerCase()));
+}
+
+if (containsAny(url, passThroughUrlWords)) {
+  $done({});
 }
 
 // ==================================================
-// 1. 针对抓包命中的 ByteGecko 静态资源直接空返回
+// 1. ByteGecko 红包 / 金币 / 福利 / 挂件资源精准空返回
 // ==================================================
-const resourceBlockWords = [
+
+const byteGeckoBlockWords = [
   "luckycat",
   "gold_box",
+  "goldbox",
   "redpacket",
+  "red_packet",
   "reward",
   "pendant",
   "welfare",
@@ -39,16 +79,42 @@ const resourceBlockWords = [
   "video_box_redpacket",
   "video_pendant",
   "hide_reward_union",
-  "redpacket_increase"
+  "redpacket_increase",
+  "gold_box_static",
+  "ugflow-resource",
+  "growth/luckycat"
 ];
 
-if (containsAny(url, resourceBlockWords)) {
-  $done({ body: "{}" });
+if (containsAny(url, byteGeckoBlockWords)) {
+  $done({
+    status: 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8"
+    },
+    body: "{}"
+  });
 }
 
 // ==================================================
-// 2. 常规 JSON 字段净化
+// 2. JSON 判断
 // ==================================================
+
+function isJson(str) {
+  if (!str || typeof str !== "string") return false;
+  const s = str.trim();
+  return (s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"));
+}
+
+// 非 JSON 不处理，直接放行
+if (!isJson(body)) {
+  $done({});
+}
+
+// ==================================================
+// 3. 清理规则
+// ==================================================
+
+// 需要删除的字段名
 const removeKeys = [
   // 广告
   "ad",
@@ -79,6 +145,12 @@ const removeKeys = [
   "commercial",
   "commercial_info",
   "commercialInfo",
+  "adMaterial",
+  "ad_material",
+  "adSlot",
+  "ad_slot",
+  "adExtra",
+  "ad_extra",
 
   // 福利 / 金币 / 任务
   "welfare",
@@ -91,6 +163,8 @@ const removeKeys = [
   "gold",
   "gold_coin",
   "goldCoin",
+  "gold_box",
+  "goldBox",
   "task",
   "tasks",
   "task_list",
@@ -159,9 +233,14 @@ const removeKeys = [
   "activityList",
   "marketing",
   "marketing_info",
-  "marketingInfo"
+  "marketingInfo",
+  "bottom_tab",
+  "bottomTab",
+  "tab_welfare",
+  "tabWelfare"
 ];
 
+// 文案关键词，匹配到则删除对应模块
 const removeTextWords = [
   "广告",
   "福利",
@@ -200,20 +279,30 @@ const removeTextWords = [
   "红包雨",
   "翻倍",
   "视频奖励",
-  "看视频领奖励"
+  "看视频领奖励",
+  "福利任务",
+  "金币任务",
+  "现金奖励"
 ];
 
+// 正文和基础字段，尽量不要误删
 const keepKeys = [
   "content",
   "chapter_content",
   "chapterContent",
   "book_name",
   "bookName",
+  "book_title",
+  "bookTitle",
   "title",
   "author",
+  "author_name",
+  "authorName",
   "chapter",
   "chapter_id",
   "chapterId",
+  "chapter_title",
+  "chapterTitle",
   "paragraph",
   "paragraphs",
   "text",
@@ -222,17 +311,61 @@ const keepKeys = [
   "book_id",
   "bookId",
   "item_id",
-  "itemId"
+  "itemId",
+  "genre",
+  "category",
+  "cover",
+  "cover_url",
+  "coverUrl"
 ];
+
+// 某些 URL 下不要删除推荐字段，避免书籍详情页结构崩
+const conservativeUrlWords = [
+  "book/detail",
+  "book/info",
+  "chapter/content",
+  "reader/chapter",
+  "reading/book",
+  "novel/book"
+];
+
+function shouldConservativeClean() {
+  return containsAny(url, conservativeUrlWords);
+}
+
+function normalizeKey(key) {
+  return String(key || "").toLowerCase();
+}
 
 function shouldRemoveByKey(key) {
   if (!key) return false;
+
+  // 正文字段保护
   if (keepKeys.includes(key)) return false;
 
-  const lower = key.toLowerCase();
+  const lower = normalizeKey(key);
+
+  // 在正文/书籍详情接口里，recommend 相关不做过度删除，避免页面空白
+  if (shouldConservativeClean()) {
+    const riskyInDetail = [
+      "recommend",
+      "recommendation",
+      "recommend_list",
+      "recommendlist",
+      "related_recommend",
+      "relatedrecommend",
+      "book_recommend",
+      "bookrecommend",
+      "novel_recommend",
+      "novelrecommend",
+      "guess_you_like",
+      "guessyoulike"
+    ];
+    if (riskyInDetail.includes(lower)) return false;
+  }
 
   return removeKeys.some(k => {
-    const rk = k.toLowerCase();
+    const rk = normalizeKey(k);
     return lower === rk || lower.includes(rk);
   });
 }
@@ -260,7 +393,9 @@ function shouldRemoveByValue(obj) {
     "component_name",
     "componentName",
     "resource_name",
-    "resourceName"
+    "resourceName",
+    "tab_name",
+    "tabName"
   ];
 
   for (const f of textFields) {
@@ -279,6 +414,8 @@ function shouldRemoveByValue(obj) {
     obj.moduleType ||
     obj.component_type ||
     obj.componentType ||
+    obj.resource_type ||
+    obj.resourceType ||
     ""
   ).toLowerCase();
 
@@ -291,16 +428,21 @@ function shouldRemoveByValue(obj) {
       "reward",
       "coin",
       "promotion",
-      "recommend",
       "activity",
       "popup",
       "float",
       "pendant",
       "luckycat",
-      "bonus"
+      "bonus",
+      "redpacket"
     ])
   ) {
     return true;
+  }
+
+  // 保守模式下，不因为 recommend 类型直接删，避免详情页异常
+  if (!shouldConservativeClean()) {
+    if (containsAny(typeText, ["recommend"])) return true;
   }
 
   return false;
@@ -347,6 +489,7 @@ function clean(obj, depth = 0) {
       obj[key] = clean(obj[key], depth + 1);
     }
 
+    // 常见显示开关关闭
     const falseKeys = [
       "show_ad",
       "showAd",
@@ -375,7 +518,11 @@ function clean(obj, depth = 0) {
       "enable_welfare",
       "enableWelfare",
       "enable_reward",
-      "enableReward"
+      "enableReward",
+      "show_red_packet",
+      "showRedPacket",
+      "show_bonus",
+      "showBonus"
     ];
 
     for (const k of falseKeys) {
@@ -384,6 +531,7 @@ function clean(obj, depth = 0) {
       }
     }
 
+    // 常见数量字段归零
     const zeroKeys = [
       "ad_count",
       "adCount",
@@ -398,7 +546,9 @@ function clean(obj, depth = 0) {
       "task_count",
       "taskCount",
       "coin_count",
-      "coinCount"
+      "coinCount",
+      "bonus_count",
+      "bonusCount"
     ];
 
     for (const k of zeroKeys) {
@@ -407,6 +557,7 @@ function clean(obj, depth = 0) {
       }
     }
 
+    // 常见列表置空
     const emptyArrayKeys = [
       "adList",
       "ad_list",
@@ -419,13 +570,23 @@ function clean(obj, depth = 0) {
       "welfare_list",
       "taskList",
       "task_list",
-      "recommendList",
-      "recommend_list",
       "activityList",
       "activity_list",
       "operationList",
       "operation_list"
     ];
+
+    // 非保守接口下，推荐列表也可以置空
+    if (!shouldConservativeClean()) {
+      emptyArrayKeys.push(
+        "recommendList",
+        "recommend_list",
+        "relatedRecommend",
+        "related_recommend",
+        "bookRecommend",
+        "book_recommend"
+      );
+    }
 
     for (const k of emptyArrayKeys) {
       if (Array.isArray(obj[k])) {
@@ -439,14 +600,16 @@ function clean(obj, depth = 0) {
   return obj;
 }
 
-try {
-  if (isJson(body)) {
-    let obj = JSON.parse(body);
-    obj = clean(obj);
-    body = JSON.stringify(obj);
-  }
-} catch (e) {
-  console.log("FanqieNovel_Cleaner V3 error: " + e);
-}
+// ==================================================
+// 4. 执行
+// ==================================================
 
-$done({ body });
+try {
+  let obj = JSON.parse(body);
+  obj = clean(obj);
+  body = JSON.stringify(obj);
+  $done({ body });
+} catch (e) {
+  console.log("FanqieNovel_Cleaner V7.1 error: " + e);
+  $done({});
+}
