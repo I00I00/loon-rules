@@ -1,31 +1,18 @@
-#!name=番茄小说净化 V4 登录保护版
-#!desc=适配番茄小说 7.1.7：修复手机号登录被误伤问题，只精准拦截 ByteGecko 红包/福利/挂件资源。
+#!name=番茄小说净化 V7.1 登录保护 JS 版
+#!desc=适配番茄小说 7.1.7；结合现网规则与抓包，保护手机号登录/验证码/风控链路，拦截明确广告资源，并用 JS 温和净化福利、红包、挂件、推荐字段。
 #!author=ChatGPT
 #!homepage=https://github.com/I00I00/loon-rules
 #!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/Book.png
 
 [Rule]
-# ==================================================
-# 登录 / 验证码 / 风控 / 设备校验：必须直连，不能拦
-# ==================================================
-DOMAIN-SUFFIX,snssdk.com,DIRECT
-DOMAIN-SUFFIX,mssdk.snssdk.com,DIRECT
-DOMAIN-SUFFIX,log.snssdk.com,DIRECT
-DOMAIN-SUFFIX,log-lq.snssdk.com,DIRECT
-DOMAIN-SUFFIX,log-hl.snssdk.com,DIRECT
-DOMAIN-SUFFIX,applog.snssdk.com,DIRECT
-DOMAIN-SUFFIX,rtlog.snssdk.com,DIRECT
-DOMAIN-SUFFIX,ibytedtos.com,DIRECT
-DOMAIN-SUFFIX,zijieapi.com,DIRECT
-DOMAIN-SUFFIX,bytedance.com,DIRECT
-DOMAIN-SUFFIX,bytedance.net,DIRECT
-DOMAIN-SUFFIX,bytegoofy.com,DIRECT
-DOMAIN-SUFFIX,bytegecko.com,DIRECT
-DOMAIN-SUFFIX,toutiao.com,DIRECT
 
 # ==================================================
-# 番茄小说 / 字节阅读相关直连
+# 0. 番茄小说 / 字节阅读 / 登录 / 验证码 / 风控：强制直连
+# --------------------------------------------------
+# 这些域名不要 REJECT，不要代理。
+# 新版番茄小说手机号登录、验证码、设备校验、风控签名可能依赖这些链路。
 # ==================================================
+
 DOMAIN-SUFFIX,fqnovel.com,DIRECT
 DOMAIN-SUFFIX,fqnovelstatic.com,DIRECT
 DOMAIN-SUFFIX,fanqienovel.com,DIRECT
@@ -35,38 +22,110 @@ DOMAIN-SUFFIX,reading.snssdk.com,DIRECT
 DOMAIN-SUFFIX,is.snssdk.com,DIRECT
 DOMAIN-SUFFIX,tp-pay.snssdk.com,DIRECT
 DOMAIN-SUFFIX,vas-lf-x.snssdk.com,DIRECT
+DOMAIN-SUFFIX,mon11-misc-hl.fqnovel.com,DIRECT
+DOMAIN-SUFFIX,lf-serial-static.fanqienovel.com,DIRECT
+
+# 字节系登录 / 验证码 / 风控 / 设备校验 / 签名链路
+DOMAIN-SUFFIX,snssdk.com,DIRECT
+DOMAIN-SUFFIX,mssdk.snssdk.com,DIRECT
+DOMAIN-SUFFIX,applog.snssdk.com,DIRECT
+DOMAIN-SUFFIX,log.snssdk.com,DIRECT
+DOMAIN-SUFFIX,log-lq.snssdk.com,DIRECT
+DOMAIN-SUFFIX,log-hl.snssdk.com,DIRECT
+DOMAIN-SUFFIX,rtlog.snssdk.com,DIRECT
+DOMAIN-SUFFIX,mon.snssdk.com,DIRECT
+DOMAIN-SUFFIX,ibytedtos.com,DIRECT
+DOMAIN-SUFFIX,zijieapi.com,DIRECT
+DOMAIN-SUFFIX,bytedance.com,DIRECT
+DOMAIN-SUFFIX,bytedance.net,DIRECT
+DOMAIN-SUFFIX,bytegoofy.com,DIRECT
+DOMAIN-SUFFIX,bytegecko.com,DIRECT
+DOMAIN-SUFFIX,pstatp.com,DIRECT
+DOMAIN-SUFFIX,toutiao.com,DIRECT
 DOMAIN-SUFFIX,byteimg.com,DIRECT
 DOMAIN-SUFFIX,bytecdn.cn,DIRECT
-DOMAIN-SUFFIX,pstatp.com,DIRECT
 DOMAIN-SUFFIX,zjcdn.com,DIRECT
 
 # ==================================================
-# 只保留明确广告 SDK 域名拦截
-# 不再拦 mssdk / applog / log / rtlog，避免影响登录
+# 1. 明确广告 SDK 域名拦截
+# --------------------------------------------------
+# 只拦明确广告资源，不拦登录风控域名。
 # ==================================================
+
 DOMAIN-SUFFIX,pangolin-sdk-toutiao.com,REJECT
 DOMAIN-SUFFIX,pglstatp-toutiao.com,REJECT
-DOMAIN-SUFFIX,ad.toutiao.com,REJECT
-DOMAIN-SUFFIX,ads.toutiao.com,REJECT
+DOMAIN,p6-ad-sign.byteimg.com,REJECT
+DOMAIN,p9-ad-sign.byteimg.com,REJECT
+
 
 [Rewrite]
+
 # ==================================================
-# 精准拦截 ByteGecko 下发的福利 / 红包 / 金币 / 挂件资源
-# 来自你抓包里的真实资源：
-# growth/luckycat
-# gold_box_static_resource
-# video_box_redpacket
-# video_pendant_hide_reward_union
+# 2. Pangolin / pglstatp / pstatp 广告资源
 # ==================================================
+
+^https?:\/\/.+\.pangolin-sdk-toutiao\.com\/api\/ad\/union\/sdk\/(get_ads|stats|settings)\/.* reject
+^https?:\/\/.+\.pglstatp-toutiao\.com\/.+\/toutiao\.mp4.* reject
+^https?:\/\/.+\.(pglstatp-toutiao|pstatp)\.com\/(obj|img)\/(ad-app-package|ad)\/.+ reject
+^https?:\/\/.+\.(pglstatp-toutiao|pstatp)\.com\/(ad-app-package|ad)\/.+ reject
+^https?:\/\/.+\.(pglstatp-toutiao|pstatp)\.com\/(obj|img)\/web\.business\.image\/.+ reject
+^https?:\/\/.+\.(pglstatp-toutiao|pstatp)\.com\/obj\/ad-pattern\/renderer.* reject
+^https?:\/\/.+\.pstatp\.com\/obj\/mosaic-legacy\/.+\?from=ad.* reject
+^https?:\/\/.+\.pstatp\.com\/bytecom\/resource\/track_log\/src\/.+ reject
+
+# ==================================================
+# 3. 番茄视频广告资源 / 章末视频广告
+# --------------------------------------------------
+# 如果正常视频/听书播放异常，优先注释这两条。
+# ==================================================
+
+^https?:\/\/v(\d)+-novelapp\.fqnovelvod\.com\/.+\/video\/.+ reject
+^https?:\/\/.+\.snssdk\.com\/video\/play\/1\/toutiao\/.+\/mp4.* reject
+
+# ==================================================
+# 4. ByteGecko 福利 / 红包 / 金币 / 挂件资源
+# --------------------------------------------------
+# 来自你抓包里真实出现过的资源关键词。
+# ==================================================
+
 ^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/byte-gurd-source\/growth\/luckycat\/.* reject-dict
 ^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/ugflow-resource\/.*(redpacket|reward|pendant|welfare|coin|gold|box).*\.json.* reject-dict
 ^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/.*(luckycat|gold_box|redpacket|reward|pendant|welfare|coin|bonus|task).*\.json.* reject-dict
 ^https?:\/\/.*(video_box_redpacket|video_pendant|redpacket_increase|gold_box_static|hide_reward_union).* reject-dict
 
+# ==================================================
+# 5. 番茄小说自身广告路径，极窄匹配
+# --------------------------------------------------
+# 不拦 login / passport / sms / verify / settings / gateway。
+# ==================================================
+
+^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading).*(\/ad\/|\/ads\/|\/splash\/).* reject-dict
+
+
 [Script]
-# 登录保护版：不再全量处理 snssdk / bytedance / toutiao
-# 只处理番茄小说相关域名，降低登录和验证码误伤
-http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/FanqieNovel_Cleaner.js, requires-body=true, timeout=15, tag=番茄小说_净化
+
+# ==================================================
+# 6. JS 温和净化
+# --------------------------------------------------
+# 只处理：
+# - fqnovel / fanqienovel / novelfm
+# - novel.snssdk / reading.snssdk
+# - bytegecko 福利资源
+# - pstatp / pglstatp 广告资源
+#
+# 不全量处理 snssdk / bytedance / zijieapi，避免再次影响手机号登录。
+# ==================================================
+
+http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel\.snssdk|reading\.snssdk|bytegecko|pstatp|pglstatp-toutiao|pangolin-sdk-toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/FanqieNovel_Cleaner.js, requires-body=true, timeout=15, tag=番茄小说_JS净化
+
 
 [MITM]
-hostname = *.fqnovel.com, *.fqnovelstatic.com, *.fanqienovel.com, *.novelfm.com, *.novel.snssdk.com, *.reading.snssdk.com, *.bytegecko.com
+
+# ==================================================
+# MITM 范围
+# --------------------------------------------------
+# 不写 *.snssdk.com / *.bytedance.com / *.zijieapi.com
+# 避免手机号登录、验证码、风控被影响。
+# ==================================================
+
+hostname = *.fqnovel.com, *.fqnovelstatic.com, *.fanqienovel.com, *.novelfm.com, *.novel.snssdk.com, *.reading.snssdk.com, *.pangolin-sdk-toutiao.com, *.pglstatp-toutiao.com, *.pstatp.com, *.fqnovelvod.com, *.bytegecko.com
