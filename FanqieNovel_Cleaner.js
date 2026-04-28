@@ -1,6 +1,7 @@
 /*
 番茄小说净化脚本 V1
 适配目标：番茄小说 7.1.7
+
 功能：
 1. 删除广告字段
 2. 删除福利 / 任务 / 金币 / 签到模块
@@ -9,7 +10,7 @@
 5. 简化“我的”页入口
 
 说明：
-这是通用 JSON 净化脚本，接口变动后可能需要根据抓包继续补规则。
+这是通用 JSON 净化脚本。番茄小说接口如果变动，后续需要根据 Loon 最近请求继续补规则。
 */
 
 let body = $response.body;
@@ -54,6 +55,9 @@ const removeKeys = [
   "insertAd",
   "interstitial_ad",
   "interstitialAd",
+  "commercial",
+  "commercial_info",
+  "commercialInfo",
 
   // 福利 / 金币 / 任务
   "welfare",
@@ -80,6 +84,9 @@ const removeKeys = [
   "rewards",
   "reward_video",
   "rewardVideo",
+  "incentive",
+  "incentive_video",
+  "incentiveVideo",
 
   // 弹窗 / 悬浮窗
   "popup",
@@ -99,6 +106,9 @@ const removeKeys = [
   "bubble",
   "red_packet",
   "redPacket",
+  "bonus",
+  "bonus_info",
+  "bonusInfo",
 
   // 推荐 / 运营位
   "recommend",
@@ -122,10 +132,13 @@ const removeKeys = [
   "activity",
   "activities",
   "activity_list",
-  "activityList"
+  "activityList",
+  "marketing",
+  "marketing_info",
+  "marketingInfo"
 ];
 
-// 需要删除的标题/文案关键词
+// 需要删除的标题 / 文案关键词
 const removeTextWords = [
   "广告",
   "福利",
@@ -152,10 +165,18 @@ const removeTextWords = [
   "继续推荐",
   "看书赚钱",
   "金币商城",
-  "邀请好友"
+  "邀请好友",
+  "新人福利",
+  "阅读奖励",
+  "开宝箱",
+  "宝箱",
+  "领现金",
+  "提现",
+  "福利页",
+  "福利入口"
 ];
 
-// 需要保留的字段名，避免误删正文
+// 正文字段，避免误删小说正文
 const keepKeys = [
   "content",
   "chapter_content",
@@ -169,17 +190,22 @@ const keepKeys = [
   "chapterId",
   "paragraph",
   "paragraphs",
-  "text"
+  "text",
+  "abstract",
+  "summary"
 ];
 
 function shouldRemoveByKey(key) {
   if (!key) return false;
 
-  // 正文相关字段不要删
   if (keepKeys.includes(key)) return false;
 
   const lower = key.toLowerCase();
-  return removeKeys.some(k => lower === k.toLowerCase() || lower.includes(k.toLowerCase()));
+
+  return removeKeys.some(k => {
+    const rk = k.toLowerCase();
+    return lower === rk || lower.includes(rk);
+  });
 }
 
 function shouldRemoveByValue(obj) {
@@ -193,14 +219,17 @@ function shouldRemoveByValue(obj) {
     "sub_title",
     "subTitle",
     "text",
-    "content",
     "button_text",
     "buttonText",
     "schema",
     "url",
     "type",
     "module_name",
-    "moduleName"
+    "moduleName",
+    "card_name",
+    "cardName",
+    "component_name",
+    "componentName"
   ];
 
   for (const f of textFields) {
@@ -209,9 +238,35 @@ function shouldRemoveByValue(obj) {
     }
   }
 
-  // 常见广告类型判断
-  const typeText = String(obj.type || obj.card_type || obj.cardType || obj.cell_type || obj.cellType || "").toLowerCase();
-  if (containsAny(typeText, ["ad", "advert", "welfare", "task", "reward", "coin", "promotion", "recommend"])) {
+  const typeText = String(
+    obj.type ||
+    obj.card_type ||
+    obj.cardType ||
+    obj.cell_type ||
+    obj.cellType ||
+    obj.module_type ||
+    obj.moduleType ||
+    obj.component_type ||
+    obj.componentType ||
+    ""
+  ).toLowerCase();
+
+  if (
+    containsAny(typeText, [
+      "ad",
+      "advert",
+      "welfare",
+      "task",
+      "reward",
+      "coin",
+      "promotion",
+      "recommend",
+      "activity",
+      "popup",
+      "float",
+      "pendant"
+    ])
+  ) {
     return true;
   }
 
@@ -219,22 +274,28 @@ function shouldRemoveByValue(obj) {
 }
 
 function clean(obj, depth = 0) {
-  if (depth > 30) return obj;
+  if (depth > 40) return obj;
 
   if (Array.isArray(obj)) {
     const newArr = [];
+
     for (const item of obj) {
       if (shouldRemoveByValue(item)) continue;
+
       const cleaned = clean(item, depth + 1);
       if (cleaned === null || cleaned === undefined) continue;
 
-      // 删除空对象
-      if (typeof cleaned === "object" && !Array.isArray(cleaned) && Object.keys(cleaned).length === 0) {
+      if (
+        typeof cleaned === "object" &&
+        !Array.isArray(cleaned) &&
+        Object.keys(cleaned).length === 0
+      ) {
         continue;
       }
 
       newArr.push(cleaned);
     }
+
     return newArr;
   }
 
@@ -253,7 +314,7 @@ function clean(obj, depth = 0) {
       obj[key] = clean(obj[key], depth + 1);
     }
 
-    // 一些常见开关字段直接关闭
+    // 常见开关字段直接关闭
     const falseKeys = [
       "show_ad",
       "showAd",
@@ -272,7 +333,17 @@ function clean(obj, depth = 0) {
       "enable_popup",
       "enablePopup",
       "show_recommend",
-      "showRecommend"
+      "showRecommend",
+      "show_pendant",
+      "showPendant",
+      "show_reward",
+      "showReward",
+      "show_task",
+      "showTask",
+      "enable_welfare",
+      "enableWelfare",
+      "enable_reward",
+      "enableReward"
     ];
 
     for (const k of falseKeys) {
@@ -281,7 +352,7 @@ function clean(obj, depth = 0) {
       }
     }
 
-    // 一些常见数量字段归零
+    // 常见数量字段归零
     const zeroKeys = [
       "ad_count",
       "adCount",
@@ -290,12 +361,45 @@ function clean(obj, depth = 0) {
       "recommend_count",
       "recommendCount",
       "welfare_count",
-      "welfareCount"
+      "welfareCount",
+      "reward_count",
+      "rewardCount",
+      "task_count",
+      "taskCount",
+      "coin_count",
+      "coinCount"
     ];
 
     for (const k of zeroKeys) {
       if (Object.prototype.hasOwnProperty.call(obj, k)) {
         obj[k] = 0;
+      }
+    }
+
+    // 常见列表字段置空，减少底部福利 / 我的页运营模块
+    const emptyArrayKeys = [
+      "adList",
+      "ad_list",
+      "ads",
+      "bannerList",
+      "banner_list",
+      "popupList",
+      "popup_list",
+      "welfareList",
+      "welfare_list",
+      "taskList",
+      "task_list",
+      "recommendList",
+      "recommend_list",
+      "activityList",
+      "activity_list",
+      "operationList",
+      "operation_list"
+    ];
+
+    for (const k of emptyArrayKeys) {
+      if (Array.isArray(obj[k])) {
+        obj[k] = [];
       }
     }
 
