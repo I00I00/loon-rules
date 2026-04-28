@@ -1,22 +1,36 @@
-#!name=番茄小说净化
-#!desc=适配番茄小说 7.1.7：去广告、去底部福利、去悬浮窗、简化我的页面、弱化小说内推荐。保守版 MITM。
+#!name=番茄小说净化 V3
+#!desc=适配番茄小说 7.1.7：根据抓包新增 ByteGecko 福利红包挂件资源拦截，去广告、去底部福利、去悬浮红包、弱化阅读推荐。
 #!author=ChatGPT
 #!homepage=https://github.com/I00I00/loon-rules
 #!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/Book.png
 
 [Rule]
+# ==================================================
+# 番茄小说 / 字节阅读相关直连
+# ==================================================
 DOMAIN-SUFFIX,fqnovel.com,DIRECT
+DOMAIN-SUFFIX,fqnovelstatic.com,DIRECT
 DOMAIN-SUFFIX,fanqienovel.com,DIRECT
 DOMAIN-SUFFIX,novelfm.com,DIRECT
 DOMAIN-SUFFIX,novel.snssdk.com,DIRECT
 DOMAIN-SUFFIX,reading.snssdk.com,DIRECT
+DOMAIN-SUFFIX,is.snssdk.com,DIRECT
+DOMAIN-SUFFIX,tp-pay.snssdk.com,DIRECT
+DOMAIN-SUFFIX,vas-lf-x.snssdk.com,DIRECT
 DOMAIN-SUFFIX,byteimg.com,DIRECT
 DOMAIN-SUFFIX,bytecdn.cn,DIRECT
 DOMAIN-SUFFIX,bytedance.com,DIRECT
 DOMAIN-SUFFIX,bytedance.net,DIRECT
 DOMAIN-SUFFIX,pstatp.com,DIRECT
 DOMAIN-SUFFIX,ibytedtos.com,DIRECT
+DOMAIN-SUFFIX,bytegoofy.com,DIRECT
+DOMAIN-SUFFIX,bytegecko.com,DIRECT
+DOMAIN-SUFFIX,zjcdn.com,DIRECT
+DOMAIN-SUFFIX,zijieapi.com,DIRECT
 
+# ==================================================
+# 番茄小说广告 / 上报 / 激励视频相关
+# ==================================================
 DOMAIN-SUFFIX,pangolin-sdk-toutiao.com,REJECT
 DOMAIN-SUFFIX,pglstatp-toutiao.com,REJECT
 DOMAIN-SUFFIX,ad.toutiao.com,REJECT
@@ -30,10 +44,35 @@ DOMAIN-SUFFIX,rtlog.snssdk.com,REJECT
 DOMAIN-SUFFIX,mssdk.snssdk.com,REJECT
 
 [Rewrite]
-^https?:\/\/.*(fqnovel|fanqienovel|novel|reading).*(\/ad\/|\/ads\/|\/splash\/|\/welfare\/|\/reward\/video\/|\/task\/.*ad).* reject-200
+# ==================================================
+# 1. 精准拦截 ByteGecko 下发的福利 / 红包 / 金币 / 挂件资源
+# 这些是你抓包里真正出现的资源：
+# - growth/luckycat
+# - gold_box_static_resource
+# - video_box_redpacket
+# - video_pendant_hide_reward_union
+# ==================================================
+
+^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/byte-gurd-source\/growth\/luckycat\/.* reject-dict
+^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/ugflow-resource\/.*(redpacket|reward|pendant|welfare|coin|gold|box).*\.json.* reject-dict
+^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/.*(luckycat|gold_box|redpacket|reward|pendant|welfare|coin|bonus|task).*\.json.* reject-dict
+
+# ==================================================
+# 2. 番茄小说常见广告 / 福利 / 任务 / 激励视频接口
+# ==================================================
+^https?:\/\/.*(fqnovel|fanqienovel|novel|reading|snssdk|zijieapi|bytedance|toutiao).*(\/ad\/|\/ads\/|\/splash\/|\/welfare\/|\/benefit\/|\/reward\/|\/task\/|\/activity\/|\/promotion\/).* reject-dict
+
+# ==================================================
+# 3. 已抓到的红包 / 福利资源关键词兜底
+# ==================================================
+^https?:\/\/.*(video_box_redpacket|video_pendant|redpacket_increase|gold_box_static|hide_reward_union).* reject-dict
 
 [Script]
-http-response ^https?:\/\/.*(fqnovel|fanqienovel|novel|reading).*\.(com|cn)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/FanqieNovel_Cleaner.js, requires-body=true, timeout=15, tag=番茄小说_净化
+# ==================================================
+# 接口 JSON 净化
+# 只处理响应体，不拦截正文内容
+# ==================================================
+http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading|snssdk|zijieapi|bytedance|bytegoofy|bytegecko|toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/FanqieNovel_Cleaner.js, requires-body=true, timeout=20, tag=番茄小说_净化
 
 [MITM]
-hostname = *.fqnovel.com, *.fanqienovel.com, *.novel.snssdk.com, *.reading.snssdk.com
+hostname = *.fqnovel.com, *.fqnovelstatic.com, *.fanqienovel.com, *.novelfm.com, *.novel.snssdk.com, *.reading.snssdk.com, *.is.snssdk.com, *.tp-pay.snssdk.com, *.vas-lf-x.snssdk.com, *.snssdk.com, *.zijieapi.com, *.bytedance.com, *.bytedance.net, *.bytegoofy.com, *.bytegecko.com, *.toutiao.com
