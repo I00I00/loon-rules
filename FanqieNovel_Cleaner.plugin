@@ -1,0 +1,39 @@
+#!name=番茄小说净化
+#!desc=适配番茄小说 7.1.7：去广告、去底部福利、去悬浮窗、简化我的页面、弱化小说内推荐。保守版 MITM。
+#!author=ChatGPT
+#!homepage=https://github.com/I00I00/loon-rules
+#!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/Book.png
+
+[Rule]
+DOMAIN-SUFFIX,fqnovel.com,DIRECT
+DOMAIN-SUFFIX,fanqienovel.com,DIRECT
+DOMAIN-SUFFIX,novelfm.com,DIRECT
+DOMAIN-SUFFIX,novel.snssdk.com,DIRECT
+DOMAIN-SUFFIX,reading.snssdk.com,DIRECT
+DOMAIN-SUFFIX,byteimg.com,DIRECT
+DOMAIN-SUFFIX,bytecdn.cn,DIRECT
+DOMAIN-SUFFIX,bytedance.com,DIRECT
+DOMAIN-SUFFIX,bytedance.net,DIRECT
+DOMAIN-SUFFIX,pstatp.com,DIRECT
+DOMAIN-SUFFIX,ibytedtos.com,DIRECT
+
+DOMAIN-SUFFIX,pangolin-sdk-toutiao.com,REJECT
+DOMAIN-SUFFIX,pglstatp-toutiao.com,REJECT
+DOMAIN-SUFFIX,ad.toutiao.com,REJECT
+DOMAIN-SUFFIX,ads.toutiao.com,REJECT
+DOMAIN-SUFFIX,mon.snssdk.com,REJECT
+DOMAIN-SUFFIX,log.snssdk.com,REJECT
+DOMAIN-SUFFIX,log-lq.snssdk.com,REJECT
+DOMAIN-SUFFIX,log-hl.snssdk.com,REJECT
+DOMAIN-SUFFIX,applog.snssdk.com,REJECT
+DOMAIN-SUFFIX,rtlog.snssdk.com,REJECT
+DOMAIN-SUFFIX,mssdk.snssdk.com,REJECT
+
+[Rewrite]
+^https?:\/\/.*(fqnovel|fanqienovel|novel|reading).*(\/ad\/|\/ads\/|\/splash\/|\/welfare\/|\/reward\/video\/|\/task\/.*ad).* reject-200
+
+[Script]
+http-response ^https?:\/\/.*(fqnovel|fanqienovel|novel|reading).*\.(com|cn)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/FanqieNovel_Cleaner.js, requires-body=true, timeout=15, tag=番茄小说_净化
+
+[MITM]
+hostname = *.fqnovel.com, *.fanqienovel.com, *.novel.snssdk.com, *.reading.snssdk.com
