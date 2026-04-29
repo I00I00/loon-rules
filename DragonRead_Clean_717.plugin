@@ -1,5 +1,5 @@
-#!name=番茄小说强净化 7.1.7 V8
-#!desc=番茄小说 / DragonRead 强净化：去广告、去福利Tab、去红包悬浮窗、去任务完成挂件、去角标红点、简化我的页、弱化推荐；保护手机号登录/验证码/风控链路。
+#!name=番茄小说强净化 7.1.7 V9
+#!desc=番茄小说 / DragonRead 强净化：去广告、去福利Tab、去红包悬浮窗、去任务完成挂件、去角标红点、去下一章3秒等待、简化我的页、弱化推荐；保护手机号登录/验证码/风控链路。
 #!author=ChatGPT
 #!homepage=https://github.com/I00I00/loon-rules
 #!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/Book.png
@@ -108,20 +108,29 @@ DOMAIN,p9-ad-sign.byteimg.com,REJECT
 ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading).*(chapter_end_ad|reader_ad|feed_ad|interstitial_ad|reward_ad).* reject-dict
 
 
+# ==================================================
+# 7. 下一章 3 秒等待 / 章末倒计时 / 阅读器广告等待接口
+# ==================================================
+
+^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading).*(next_chapter_ad|chapter_end_ad|reader_ad|interstitial_ad|reward_ad|ad_countdown|ad_wait|wait_ad|skip_ad|countdown|wait_time|delay_time).* reject-dict
+^https?:\/\/.*(novel\.snssdk|reading\.snssdk).*(next_chapter_ad|chapter_end_ad|reader_ad|interstitial_ad|reward_ad|ad_countdown|ad_wait|wait_ad|skip_ad|countdown|wait_time|delay_time).* reject-dict
+
+
 [Script]
 
 # ==================================================
-# 7. V8 强净化 JS
+# 8. V9 强净化 JS
 # 新增处理：
+# - 下一章 3 秒等待
+# - 章末倒计时
+# - 阅读器广告等待
 # - 首页红包悬浮窗
 # - 底部福利 Tab
 # - 我的页角标 / 红点
 # - 任务完成挂件
-# - settings/config 下发的 tab / pendant / badge 配置
 # ==================================================
 
-http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel\.snssdk|reading\.snssdk|is\.snssdk|bytegecko|pstatp|pglstatp-toutiao|pangolin-sdk-toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/DragonRead_Clean_717.js, requires-body=true, timeout=15, tag=番茄小说_V8强净化
-
+http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel\.snssdk|reading\.snssdk|is\.snssdk|bytegecko|pstatp|pglstatp-toutiao|pangolin-sdk-toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/DragonRead_Clean_717.js, requires-body=true, timeout=15, tag=番茄小说_V9强净化
 
 
 [MITM]
