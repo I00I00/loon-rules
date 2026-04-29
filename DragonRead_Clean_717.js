@@ -1,18 +1,17 @@
 /*
-番茄小说 / DragonRead 强净化脚本 7.1.7
+番茄小说 / DragonRead 强净化脚本 V8
+适配：番茄小说 7.1.7
 
-目标：
+重点：
 1. 去广告
 2. 去底部福利 Tab
 3. 去红包 / 金币 / 福利 / 任务
-4. 去悬浮窗 / 挂件 / 弹窗
-5. 简化“我的”页面
-6. 清理阅读页推荐 / 章末推荐
-7. 保护手机号登录 / 验证码 / 风控链路
-
-说明：
-- 如果某些底部 Tab 是 App 本地写死，JS 只能清理服务端下发内容，不能 100% 删除本地 UI。
-- 如果登录异常，先关闭插件或删除插件里的 [Script] 段。
+4. 去“任务完成”红包悬浮窗
+5. 去我的页红点 / 数字角标
+6. 去悬浮窗 / 挂件 / 弹窗
+7. 简化我的页面
+8. 清理阅读页推荐 / 章末推荐
+9. 保护手机号登录 / 验证码 / 风控链路
 */
 
 let body = $response.body || "";
@@ -32,7 +31,8 @@ function containsAny(text, words) {
 }
 
 // ==================================================
-// 0. 登录 / 验证码 / 风控 / 支付 / 设置链路保护
+// 0. 登录 / 验证码 / 风控 / 支付链路保护
+// 注意：这里不再粗暴放行 settings，因为底部 Tab / 角标可能来自 settings。
 // ==================================================
 
 const passThroughUrlWords = [
@@ -54,9 +54,6 @@ const passThroughUrlWords = [
   "xlog",
   "applog",
   "rtlog",
-  "log",
-  "settings",
-  "service/settings",
   "gateway-u",
   "tp-pay",
   "pay",
@@ -65,8 +62,8 @@ const passThroughUrlWords = [
   "purchase",
   "token",
   "refresh_token",
-  "device",
-  "install",
+  "device/register",
+  "install/register",
   "activation",
   "risk",
   "cert",
@@ -96,6 +93,9 @@ function main() {
     "coin",
     "bonus",
     "task",
+    "task_done",
+    "task_complete",
+    "task_finish",
     "video_box_redpacket",
     "video_pendant",
     "hide_reward_union",
@@ -131,7 +131,7 @@ function main() {
     body = JSON.stringify(obj);
     done({ body });
   } catch (e) {
-    console.log("DragonRead Cleaner error: " + e);
+    console.log("DragonRead Cleaner V8 error: " + e);
     done({});
   }
 }
@@ -202,6 +202,14 @@ const removeKeys = [
   "tasks",
   "task_list",
   "taskList",
+  "task_center",
+  "taskCenter",
+  "task_done",
+  "taskDone",
+  "task_complete",
+  "taskComplete",
+  "task_finish",
+  "taskFinish",
   "signin",
   "sign_in",
   "signIn",
@@ -220,6 +228,7 @@ const removeKeys = [
   "luckyCat",
   "red_packet",
   "redPacket",
+  "redpacket",
   "bonus",
 
   // 弹窗 / 悬浮窗 / 挂件
@@ -240,6 +249,10 @@ const removeKeys = [
   "bubble",
   "guide_popup",
   "guidePopup",
+  "floating_layer",
+  "floatingLayer",
+  "float_widget",
+  "floatWidget",
 
   // 推荐 / 运营位 / 活动
   "recommend",
@@ -271,6 +284,8 @@ const removeKeys = [
   // 底部 Tab / 我的页入口
   "bottom_tab",
   "bottomTab",
+  "bottom_tabs",
+  "bottomTabs",
   "tab_welfare",
   "tabWelfare",
   "welfare_tab",
@@ -286,7 +301,34 @@ const removeKeys = [
   "entranceList",
   "shortcut",
   "shortcut_list",
-  "shortcutList"
+  "shortcutList",
+
+  // 红点 / 角标
+  "badge",
+  "badges",
+  "badge_info",
+  "badgeInfo",
+  "badge_count",
+  "badgeCount",
+  "badge_text",
+  "badgeText",
+  "red_dot",
+  "redDot",
+  "reddot",
+  "red_dot_info",
+  "redDotInfo",
+  "unread",
+  "unread_count",
+  "unreadCount",
+  "notice_count",
+  "noticeCount",
+  "notification_count",
+  "notificationCount",
+  "corner_mark",
+  "cornerMark",
+  "corner",
+  "bubble_count",
+  "bubbleCount"
 ];
 
 const removeTextWords = [
@@ -304,6 +346,8 @@ const removeTextWords = [
   "红包",
   "签到",
   "任务",
+  "任务完成",
+  "已完成",
   "看视频",
   "激励视频",
   "领金币",
@@ -517,7 +561,9 @@ function shouldRemoveByValue(obj) {
       "bonus",
       "redpacket",
       "bottom_welfare",
-      "welfare_tab"
+      "welfare_tab",
+      "badge",
+      "red_dot"
     ])
   ) {
     return true;
@@ -531,7 +577,7 @@ function shouldRemoveByValue(obj) {
 }
 
 function clean(obj, depth = 0) {
-  if (depth > 45) return obj;
+  if (depth > 50) return obj;
 
   if (Array.isArray(obj)) {
     const arr = [];
@@ -608,7 +654,15 @@ function clean(obj, depth = 0) {
       "show_bottom_tab",
       "showBottomTab",
       "show_welfare_tab",
-      "showWelfareTab"
+      "showWelfareTab",
+      "show_badge",
+      "showBadge",
+      "show_red_dot",
+      "showRedDot",
+      "has_badge",
+      "hasBadge",
+      "has_red_dot",
+      "hasRedDot"
     ];
 
     for (const k of falseKeys) {
@@ -636,12 +690,41 @@ function clean(obj, depth = 0) {
       "bonus_count",
       "bonusCount",
       "red_packet_count",
-      "redPacketCount"
+      "redPacketCount",
+      "badge_count",
+      "badgeCount",
+      "unread_count",
+      "unreadCount",
+      "notice_count",
+      "noticeCount",
+      "notification_count",
+      "notificationCount"
     ];
 
     for (const k of zeroKeys) {
       if (Object.prototype.hasOwnProperty.call(obj, k)) {
         obj[k] = 0;
+      }
+    }
+
+    // 角标文案清空
+    const emptyStringKeys = [
+      "badge",
+      "badgeText",
+      "badge_text",
+      "redDot",
+      "red_dot",
+      "cornerMark",
+      "corner_mark",
+      "corner",
+      "bubble",
+      "bubbleText",
+      "bubble_text"
+    ];
+
+    for (const k of emptyStringKeys) {
+      if (Object.prototype.hasOwnProperty.call(obj, k) && typeof obj[k] === "string") {
+        obj[k] = "";
       }
     }
 
@@ -669,7 +752,9 @@ function clean(obj, depth = 0) {
       "mineOperationList",
       "mine_operation_list",
       "mineBannerList",
-      "mine_banner_list"
+      "mine_banner_list",
+      "bottomTabs",
+      "bottom_tabs"
     ];
 
     if (!isConservativeUrl()) {
