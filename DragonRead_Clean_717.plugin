@@ -108,6 +108,15 @@ DOMAIN,p9-ad-sign.byteimg.com,REJECT
 ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading).*(chapter_end_ad|reader_ad|feed_ad|interstitial_ad|reward_ad).* reject-dict
 
 
+[Script]
+
+# ==================================================
+# 7. 强净化 JS
+# ==================================================
+
+http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel\.snssdk|reading\.snssdk|bytegecko|pstatp|pglstatp-toutiao|pangolin-sdk-toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/DragonRead_Clean_717.js, requires-body=true, timeout=15, tag=番茄小说_强净化
+
+
 [MITM]
 
 # ==================================================
