@@ -1,5 +1,5 @@
 /*
-番茄小说 / DragonRead 强净化脚本 V8
+番茄小说 / DragonRead 强净化脚本 V9
 适配：番茄小说 7.1.7
 
 重点：
@@ -9,9 +9,11 @@
 4. 去“任务完成”红包悬浮窗
 5. 去我的页红点 / 数字角标
 6. 去悬浮窗 / 挂件 / 弹窗
-7. 简化我的页面
-8. 清理阅读页推荐 / 章末推荐
-9. 保护手机号登录 / 验证码 / 风控链路
+7. 去下一章 3 秒等待
+8. 去章末倒计时 / 阅读器广告等待
+9. 简化我的页面
+10. 清理阅读页推荐 / 章末推荐
+11. 保护手机号登录 / 验证码 / 风控链路
 */
 
 let body = $response.body || "";
@@ -32,7 +34,7 @@ function containsAny(text, words) {
 
 // ==================================================
 // 0. 登录 / 验证码 / 风控 / 支付链路保护
-// 注意：这里不再粗暴放行 settings，因为底部 Tab / 角标可能来自 settings。
+// 注意：不再粗暴放行 settings，因为底部 Tab / 角标可能来自 settings。
 // ==================================================
 
 const passThroughUrlWords = [
@@ -131,7 +133,7 @@ function main() {
     body = JSON.stringify(obj);
     done({ body });
   } catch (e) {
-    console.log("DragonRead Cleaner V8 error: " + e);
+    console.log("DragonRead Cleaner V9 error: " + e);
     done({});
   }
 }
@@ -662,7 +664,39 @@ function clean(obj, depth = 0) {
       "has_badge",
       "hasBadge",
       "has_red_dot",
-      "hasRedDot"
+      "hasRedDot",
+
+      // 章末广告 / 下一章广告 / 倒计时开关
+      "show_chapter_end_ad",
+      "showChapterEndAd",
+      "show_reader_ad",
+      "showReaderAd",
+      "show_next_chapter_ad",
+      "showNextChapterAd",
+      "enable_chapter_end_ad",
+      "enableChapterEndAd",
+      "enable_reader_ad",
+      "enableReaderAd",
+      "enable_next_chapter_ad",
+      "enableNextChapterAd",
+      "need_watch_ad",
+      "needWatchAd",
+      "need_reward_ad",
+      "needRewardAd",
+      "need_ad",
+      "needAd",
+      "has_reward_ad",
+      "hasRewardAd",
+      "has_interstitial_ad",
+      "hasInterstitialAd",
+      "show_interstitial_ad",
+      "showInterstitialAd",
+      "enable_interstitial_ad",
+      "enableInterstitialAd",
+      "force_watch_ad",
+      "forceWatchAd",
+      "can_show_ad",
+      "canShowAd"
     ];
 
     for (const k of falseKeys) {
@@ -671,7 +705,7 @@ function clean(obj, depth = 0) {
       }
     }
 
-    // 数量归零
+    // 数量 / 倒计时 / 等待时间归零
     const zeroKeys = [
       "ad_count",
       "adCount",
@@ -698,12 +732,108 @@ function clean(obj, depth = 0) {
       "notice_count",
       "noticeCount",
       "notification_count",
-      "notificationCount"
+      "notificationCount",
+
+      // 章末广告 / 下一章等待 / 倒计时
+      "wait_time",
+      "waitTime",
+      "waiting_time",
+      "waitingTime",
+      "delay_time",
+      "delayTime",
+      "countdown",
+      "count_down",
+      "countDown",
+      "countdown_time",
+      "countdownTime",
+      "remain_time",
+      "remainTime",
+      "remaining_time",
+      "remainingTime",
+      "next_chapter_delay",
+      "nextChapterDelay",
+      "next_chapter_wait_time",
+      "nextChapterWaitTime",
+      "chapter_end_wait_time",
+      "chapterEndWaitTime",
+      "chapter_end_delay",
+      "chapterEndDelay",
+      "reader_ad_wait_time",
+      "readerAdWaitTime",
+      "reward_ad_wait_time",
+      "rewardAdWaitTime",
+      "interstitial_ad_wait_time",
+      "interstitialAdWaitTime",
+      "interstitial_ad_delay",
+      "interstitialAdDelay",
+      "ad_wait_time",
+      "adWaitTime",
+      "ad_delay",
+      "adDelay",
+      "skip_time",
+      "skipTime",
+      "skip_seconds",
+      "skipSeconds",
+      "duration",
+      "ad_duration",
+      "adDuration"
     ];
 
     for (const k of zeroKeys) {
       if (Object.prototype.hasOwnProperty.call(obj, k)) {
         obj[k] = 0;
+      }
+    }
+
+    // 章末下一章等待 / 广告倒计时强制清零
+    for (const key of Object.keys(obj)) {
+      const lk = lower(key);
+
+      if (
+        lk.includes("wait") ||
+        lk.includes("delay") ||
+        lk.includes("countdown") ||
+        lk.includes("count_down") ||
+        lk.includes("skip") ||
+        lk.includes("remain") ||
+        lk.includes("duration")
+      ) {
+        if (typeof obj[key] === "number") {
+          obj[key] = 0;
+        }
+
+        if (typeof obj[key] === "string" && /^\d+$/.test(obj[key])) {
+          obj[key] = "0";
+        }
+      }
+
+      if (
+        lk.includes("chapterendad") ||
+        lk.includes("chapter_end_ad") ||
+        lk.includes("readerad") ||
+        lk.includes("reader_ad") ||
+        lk.includes("nextchapterad") ||
+        lk.includes("next_chapter_ad") ||
+        lk.includes("interstitialad") ||
+        lk.includes("interstitial_ad") ||
+        lk.includes("rewardad") ||
+        lk.includes("reward_ad")
+      ) {
+        if (typeof obj[key] === "boolean") {
+          obj[key] = false;
+        }
+
+        if (typeof obj[key] === "number") {
+          obj[key] = 0;
+        }
+
+        if (Array.isArray(obj[key])) {
+          obj[key] = [];
+        }
+
+        if (typeof obj[key] === "object" && obj[key] !== null) {
+          obj[key] = {};
+        }
       }
     }
 
