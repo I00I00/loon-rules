@@ -1,5 +1,5 @@
-#!name=番茄小说强净化 7.1.7
-#!desc=番茄小说 / DragonRead 强净化：去广告、去福利、去金币红包、去悬浮窗、去无用Tab、简化我的页、弱化阅读页推荐；保护手机号登录/验证码/风控链路。
+#!name=番茄小说强净化 7.1.7 V8
+#!desc=番茄小说 / DragonRead 强净化：去广告、去福利Tab、去红包悬浮窗、去任务完成挂件、去角标红点、简化我的页、弱化推荐；保护手机号登录/验证码/风控链路。
 #!author=ChatGPT
 #!homepage=https://github.com/I00I00/loon-rules
 #!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/Book.png
@@ -96,12 +96,12 @@ DOMAIN,p9-ad-sign.byteimg.com,REJECT
 ^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/byte-gurd-source\/growth\/luckycat\/.* reject-dict
 ^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/ugflow-resource\/.*(redpacket|reward|pendant|welfare|coin|gold|box).*\.json.* reject-dict
 ^https?:\/\/[^\/]+\.bytegecko\.com\/obj\/.*(luckycat|gold_box|redpacket|reward|pendant|welfare|coin|bonus|task).*\.json.* reject-dict
-^https?:\/\/.*(video_box_redpacket|video_pendant|redpacket_increase|gold_box_static|hide_reward_union).* reject-dict
+^https?:\/\/.*(video_box_redpacket|video_pendant|redpacket_increase|gold_box_static|hide_reward_union|task_done|task_complete|task_finish).* reject-dict
 
 
 # ==================================================
 # 6. 番茄自身广告 / 福利 / 任务 / 活动接口
-# 不拦 login / passport / sms / verify / settings / gateway
+# 不拦 login / passport / sms / verify / gateway
 # ==================================================
 
 ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel|reading).*(\/ad\/|\/ads\/|\/splash\/).* reject-dict
@@ -111,18 +111,24 @@ DOMAIN,p9-ad-sign.byteimg.com,REJECT
 [Script]
 
 # ==================================================
-# 7. 强净化 JS
+# 7. V8 强净化 JS
+# 新增处理：
+# - 首页红包悬浮窗
+# - 底部福利 Tab
+# - 我的页角标 / 红点
+# - 任务完成挂件
+# - settings/config 下发的 tab / pendant / badge 配置
 # ==================================================
 
-http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel\.snssdk|reading\.snssdk|bytegecko|pstatp|pglstatp-toutiao|pangolin-sdk-toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/DragonRead_Clean_717.js, requires-body=true, timeout=15, tag=番茄小说_强净化
+http-response ^https?:\/\/.*(fqnovel|fanqienovel|novelfm|novel\.snssdk|reading\.snssdk|is\.snssdk|bytegecko|pstatp|pglstatp-toutiao|pangolin-sdk-toutiao).*\.(com|cn|net)\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/DragonRead_Clean_717.js, requires-body=true, timeout=15, tag=番茄小说_V8强净化
 
 
 [MITM]
 
 # ==================================================
 # MITM 范围
-# 不写 *.snssdk.com / *.bytedance.com / *.zijieapi.com / *.bytegoofy.com
+# 注意：只加 is.snssdk.com，不加整个 *.snssdk.com
 # 避免影响手机号登录 / 验证码 / 风控
 # ==================================================
 
-hostname = *.fqnovel.com, *.fqnovelstatic.com, *.fanqienovel.com, *.novelfm.com, *.novel.snssdk.com, *.reading.snssdk.com, *.pangolin-sdk-toutiao.com, *.pglstatp-toutiao.com, *.pstatp.com, *.fqnovelvod.com, *.bytegecko.com
+hostname = *.fqnovel.com, *.fqnovelstatic.com, *.fanqienovel.com, *.novelfm.com, *.novel.snssdk.com, *.reading.snssdk.com, is.snssdk.com, *.pangolin-sdk-toutiao.com, *.pglstatp-toutiao.com, *.pstatp.com, *.fqnovelvod.com, *.bytegecko.com
