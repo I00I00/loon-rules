@@ -1,0 +1,10 @@
+#!name=斗鱼播放页广告净化
+#!desc=净化斗鱼直播/播放页接口下发的横幅、弹窗、浮层广告。先只 MITM *.douyu.com，避免影响直播流。
+#!author=ChatGPT
+#!homepage=https://github.com/I00I00/loon-rules
+
+[Script]
+http-response ^https?:\/\/[^\/]*\.?douyu\.com\/.* script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/douyu_room_ad_clean.js, requires-body=true, timeout=10, tag=斗鱼播放页广告净化
+
+[MITM]
+hostname = %APPEND% *.douyu.com
