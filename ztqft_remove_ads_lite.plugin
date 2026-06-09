@@ -1,0 +1,19 @@
+#!name=中泰齐富通去广告 Lite
+#!desc=基于抓包分析，拦截中泰齐富通自家广告素材，并可选过滤首页 hotVideo 广告项。尽量避免整域名拦截，降低登录、行情、交易异常风险。
+#!author=ChatGPT
+#!homepage=https://github.com/I00I00/loon-rules
+#!icon=https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Advertising.png
+
+[Rule]
+# 中泰齐富通：广告素材图，仅拦截 /resource/ad/，避免误伤主站资源
+URL-REGEX,^https?:\/\/wd\.95538\.cn\/resource\/ad\/.*\.(jpg|jpeg|png|webp)(\?.*)?$,REJECT
+
+# 可选：性能/埋点上报；如 App 启动、登录、首页异常，可先注释本行
+DOMAIN,appmonitor.ztqft.com,REJECT
+
+[Script]
+# 首页 hotVideo 广告项过滤：只删除 cover/url/playUrl 指向 /resource/ad/ 的条目
+http-response ^https:\/\/hwqfttools\.ztqft\.com\/homepage\/hotVideo\?auth=CustomTitle script-path=https://raw.githubusercontent.com/I00I00/loon-rules/main/ztqft_remove_ads_hotvideo.js,requires-body=1,tag=中泰齐富通-首页广告过滤
+
+[MITM]
+hostname = wd.95538.cn, hwqfttools.ztqft.com
